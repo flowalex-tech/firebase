@@ -1,33 +1,82 @@
 "use client"
 
-import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react';
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { addDoc, collection, getFirestore, onSnapshot, orderBy, query, serverTimestamp } from 'firebase/firestore';
+import { getAuth, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider } from 'firebase/auth/cordova';
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+ 
+};
+
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const provider = new GoogleAuthProvider();
 
 type Message = {
-  userName: string
-  test: string
+  userName: string,
+  text: string,
 }
 
 export default function Home() {
-  const [disaplyName, setDisplayName] = useState('');
-  const [messageText, setMessageFeed] = useState('');
-  const [messageFeed, setMessageText] = useState<Message[]>([])
+  const [user, setUser] = useState<User>();
+  const [displayName, setDisplayName] = useState('');
+  const [messageText, setMessageText] = useState('');
+  const [messageFeed, setMessageFeed] = useState<Message[]>([]);
   const sendMessage = () => {
     const newMessage = {
-      userName: disaplyName,
-      test: messageText
+      userName: displayName,
+      text: messageText,
+      time: serverTimestamp(),
     };
-    // console.log(newMessage);
-    setMessageFeed([...messageFeed, newMessage])
+
+    addDoc(collection(db, "messages"), newMessage);
   }
+
+  useEffect(() => {
+    const q = query(collection(db, "messages"), orderBy('time'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      setMessageFeed(querySnapshot.docs.map((doc) => {
+        return {
+          userName: doc.data().userName,
+          text: doc.data().text,
+          id: doc.id,
+        }
+      }));
+    })
+    return () => unsubscribe();
+  }, [])
+
+  const signIn = async () => {
+    const response = await signInWithPopup(auth, provider);
+    setUser(response.user)
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <h1>Serverless MN</h1>
-      <input onChange={(e) => setDisplayName(e.target.value)} value={disaplyName}/>
-      <input onChange={(e) => setMessageText(e.target.value)} value={messageText}/>
-      <button onClick={sendMessage}>Send Message</button>
-      
-      <p>k8s jenkins</p>
+    <main>
+      {user ? <>
+        <h1>Serverless MN</h1>
+        <input onChange={(e) => setDisplayName(e.target.value)} value={displayName} />
+        <input onChange={(e) => setMessageText(e.target.value)} value={messageText} />
+        <button onClick={sendMessage}>Send Message</button>
+        <ul>
+          {messageFeed.map((message) => (<li key={message.text}>
+            {message.userName}: {message.text}
+          </li>))}
+        </ul>
+        <p>Monkey Capybara Flour Flower</p>
+      </> : <>
+        <button onClick={signIn}>Sign In</button>
+      </>}
     </main>
   )
 }
