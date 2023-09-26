@@ -23,10 +23,10 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
 type Message = {
+  id: string
   userName: string,
   text: string,
 }
-
 export default function Home() {
   const [user, setUser] = useState<User>();
   const [displayName, setDisplayName] = useState('');
@@ -73,7 +73,7 @@ export default function Home() {
             {message.userName}: {message.text}
           </li>))}
         </ul>
-        <p>Monkey Capybara Flour Flower</p>
+        <p>jenkins k8s</p>
       </> : <>
         <button onClick={signIn}>Sign In</button>
       </>}
